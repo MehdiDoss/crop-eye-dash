@@ -1,26 +1,56 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ScanLine, Leaf, ShieldAlert, Activity } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { DetectionTable } from "@/components/dashboard/DetectionTable";
+import { mockDetections, stats } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: DashboardPage,
+  head: () => ({
+    meta: [
+      { title: "Detection Dashboard – CropEye" },
+      {
+        name: "description",
+        content:
+          "CropEye detection dashboard — monitor crop health scans, predictions, and confidence levels in one place.",
+      },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
+const statIcons = [Activity, Leaf, ShieldAlert, ScanLine];
 
-function Index() {
-  return <PlaceholderIndex />;
+function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 700);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <DashboardLayout
+      title="Detection Dashboard"
+      subtitle="Monitor crop health scans and model predictions"
+      actionLabel="New Detection"
+    >
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((s, i) => (
+          <StatCard
+            key={s.label}
+            label={s.label}
+            value={s.value}
+            trend={s.trend}
+            icon={statIcons[i]}
+          />
+        ))}
+      </div>
+
+      <div className="mt-6">
+        <DetectionTable data={loading ? [] : mockDetections} loading={loading} />
+      </div>
+    </DashboardLayout>
+  );
 }

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   ScanLine,
@@ -9,6 +9,7 @@ import {
   Leaf,
   X,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 interface SidebarProps {
   open: boolean;
@@ -26,6 +27,13 @@ const navItems = [
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const pathname = location.pathname;
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <>
@@ -97,19 +105,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="border-t border-sidebar-border p-4">
           <div className="mb-3 flex items-center gap-3 rounded-lg px-2 py-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-primary-foreground">
-              JD
+              {user?.avatarInitials ?? "U"}
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
-                Jane Doe
+                {user?.displayName || "User"}
               </p>
               <p className="truncate text-xs text-sidebar-muted">
-                jane@cropeye.io
+                {user?.email}
               </p>
             </div>
           </div>
           <button
             type="button"
+            onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-border hover:text-sidebar-foreground"
           >
             <LogOut className="h-4 w-4" />

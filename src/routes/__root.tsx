@@ -30,14 +30,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "CropEye" },
+      { name: "description", content: "CropEye Dashboard provides a modern SaaS interface for crop health monitoring and AI-powered image detection." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "CropEye" },
+      { property: "og:description", content: "CropEye Dashboard provides a modern SaaS interface for crop health monitoring and AI-powered image detection." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "CropEye" },
+      { name: "twitter:description", content: "CropEye Dashboard provides a modern SaaS interface for crop health monitoring and AI-powered image detection." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/faaa4018-a7b9-49c9-8da6-e55163b1d627/id-preview-935bbe13--b3cf70f8-829c-415b-a318-8f226d4c0bd3.lovable.app-1776978297869.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/faaa4018-a7b9-49c9-8da6-e55163b1d627/id-preview-935bbe13--b3cf70f8-829c-415b-a318-8f226d4c0bd3.lovable.app-1776978297869.png" },
     ],
     links: [
       {

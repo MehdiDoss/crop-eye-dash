@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Leaf, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import loginBg from "@/assets/login-bg.jpg";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -35,16 +36,20 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md">
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-10"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/40" />
+      <div className="relative z-10 w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg">
             <Leaf className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-semibold tracking-tight text-foreground">CropEye</span>
+          <span className="text-2xl font-semibold tracking-tight text-white drop-shadow">CropEye</span>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
+        <div className="rounded-2xl border border-white/20 bg-card/95 p-6 shadow-2xl backdrop-blur-md sm:p-8">
           <h1 className="text-xl font-semibold text-foreground">Welcome back</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Sign in to your CropEye dashboard.

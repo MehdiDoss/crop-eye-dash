@@ -8,9 +8,13 @@ import {
   type BoundingBox,
 } from "@/components/detection/DetectionViewer";
 import { ResultList } from "@/components/detection/ResultList";
+import { LiveStreamViewer } from "@/components/detection/LiveStreamViewer";
 import {
   DETECTION_API_URL,
+  STREAM_API_URL,
+  getStreamUrl,
   pingDetectionServer,
+  pingStreamServer,
   runDetection,
 } from "@/lib/detection-api";
 
@@ -31,6 +35,7 @@ function DetectionPage() {
   const [boxes, setBoxes] = useState<BoundingBox[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+  const [streamOnline, setStreamOnline] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // Manage object URL lifecycle
@@ -44,15 +49,24 @@ function DetectionPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  // Probe the model server periodically so we can auto-start
+  // Probe both servers periodically
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const ctrl = new AbortController();
-      const timeout = window.setTimeout(() => ctrl.abort(), 2500);
-      const ok = await pingDetectionServer(ctrl.signal);
-      window.clearTimeout(timeout);
-      if (!cancelled) setServerOnline(ok);
+      const ctrl1 = new AbortController();
+      const ctrl2 = new AbortController();
+      const t1 = window.setTimeout(() => ctrl1.abort(), 2500);
+      const t2 = window.setTimeout(() => ctrl2.abort(), 2500);
+      const [model, stream] = await Promise.all([
+        pingDetectionServer(ctrl1.signal),
+        pingStreamServer(ctrl2.signal),
+      ]);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      if (!cancelled) {
+        setServerOnline(model);
+        setStreamOnline(stream);
+      }
     };
     check();
     const id = window.setInterval(check, 8000);
@@ -96,7 +110,6 @@ function DetectionPage() {
       setState("empty");
       return;
     }
-    // Auto-start if the model server is reachable
     if (serverOnline) {
       void startDetection(f);
     } else {
@@ -104,7 +117,7 @@ function DetectionPage() {
     }
   };
 
-  // If the server comes online while a file is already selected, auto-run
+  // Auto-run if server comes online with a file already selected
   useEffect(() => {
     if (serverOnline && file && state === "empty") {
       void startDetection(file);
@@ -122,37 +135,72 @@ function DetectionPage() {
       title="Detection"
       subtitle="Run a new crop scan with AI-powered analysis"
     >
-      <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
-        <div className="flex items-center gap-2">
-          {serverOnline ? (
-            <>
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-              </span>
-              <span className="font-medium text-foreground">
-                Model online — auto-detect enabled
-              </span>
-              <Wifi className="h-3.5 w-3.5 text-success" />
-            </>
-          ) : serverOnline === false ? (
-            <>
-              <span className="h-2 w-2 rounded-full bg-muted-foreground" />
-              <span className="font-medium text-foreground">
-                Model offline
-              </span>
-              <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
-            </>
-          ) : (
-            <>
-              <span className="h-2 w-2 rounded-full bg-muted-foreground/50" />
-              <span className="text-muted-foreground">Checking model…</span>
-            </>
-          )}
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
+          <div className="flex items-center gap-2">
+            {serverOnline ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                </span>
+                <span className="font-medium text-foreground">
+                  Model online
+                </span>
+                <Wifi className="h-3.5 w-3.5 text-success" />
+              </>
+            ) : serverOnline === false ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+                <span className="font-medium text-foreground">
+                  Model offline
+                </span>
+                <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+                <span className="text-muted-foreground">Checking model…</span>
+              </>
+            )}
+          </div>
+          <code className="text-[11px] text-muted-foreground">
+            {DETECTION_API_URL}
+          </code>
         </div>
-        <code className="text-[11px] text-muted-foreground">
-          {DETECTION_API_URL}
-        </code>
+
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
+          <div className="flex items-center gap-2">
+            {streamOnline ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                </span>
+                <span className="font-medium text-foreground">
+                  Pi stream live
+                </span>
+                <Wifi className="h-3.5 w-3.5 text-destructive" />
+              </>
+            ) : streamOnline === false ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+                <span className="font-medium text-foreground">
+                  Pi stream offline
+                </span>
+                <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+                <span className="text-muted-foreground">Checking stream…</span>
+              </>
+            )}
+          </div>
+          <code className="text-[11px] text-muted-foreground">
+            {STREAM_API_URL}
+          </code>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
@@ -169,15 +217,27 @@ function DetectionPage() {
           />
         </div>
 
-        {/* Right: viewer + results */}
+        {/* Right: viewer + results (or live stream) */}
         <div className="space-y-5 lg:col-span-8 xl:col-span-9">
-          <DetectionViewer
-            imageUrl={previewUrl}
-            boxes={boxes}
-            state={previewUrl ? state : "empty"}
-            errorMessage={errorMessage}
-          />
-          <ResultList results={boxes} state={previewUrl ? state : "empty"} />
+          {liveMode ? (
+            <LiveStreamViewer
+              streamUrl={getStreamUrl()}
+              online={streamOnline}
+            />
+          ) : (
+            <>
+              <DetectionViewer
+                imageUrl={previewUrl}
+                boxes={boxes}
+                state={previewUrl ? state : "empty"}
+                errorMessage={errorMessage}
+              />
+              <ResultList
+                results={boxes}
+                state={previewUrl ? state : "empty"}
+              />
+            </>
+          )}
         </div>
       </div>
     </DashboardLayout>

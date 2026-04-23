@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  ScanLine,
+  ScanSearch,
   History,
   BarChart3,
   Settings,
@@ -19,7 +19,7 @@ interface SidebarProps {
 
 const navItems = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  { label: "Detection", to: "/detection", icon: ScanLine },
+  { label: "Detection", to: "/detection", icon: ScanSearch },
   { label: "Drone Monitoring", to: "/drone", icon: Plane },
   { label: "History", to: "/history", icon: History },
   { label: "Analytics", to: "/analytics", icon: BarChart3 },

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Wifi, WifiOff } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { UploadCard } from "@/components/detection/UploadCard";
 import {
@@ -7,6 +8,11 @@ import {
   type BoundingBox,
 } from "@/components/detection/DetectionViewer";
 import { ResultList } from "@/components/detection/ResultList";
+import {
+  DETECTION_API_URL,
+  pingDetectionServer,
+  runDetection,
+} from "@/lib/detection-api";
 
 export const Route = createFileRoute("/detection")({
   component: DetectionPage,
@@ -17,14 +23,6 @@ export const Route = createFileRoute("/detection")({
 
 type ViewerState = "empty" | "loading" | "error" | "ready";
 
-// Mocked predictions for demo purposes
-const MOCK_BOXES: BoundingBox[] = [
-  { x: 0.08, y: 0.12, width: 0.28, height: 0.32, label: "Leaf rust", confidence: 0.94, status: "infected" },
-  { x: 0.45, y: 0.22, width: 0.22, height: 0.26, label: "Healthy leaf", confidence: 0.88, status: "healthy" },
-  { x: 0.62, y: 0.55, width: 0.26, height: 0.28, label: "Powdery mildew", confidence: 0.71, status: "infected" },
-  { x: 0.18, y: 0.6, width: 0.2, height: 0.22, label: "Healthy leaf", confidence: 0.82, status: "healthy" },
-];
-
 function DetectionPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -32,6 +30,8 @@ function DetectionPage() {
   const [state, setState] = useState<ViewerState>("empty");
   const [boxes, setBoxes] = useState<BoundingBox[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Manage object URL lifecycle
   useEffect(() => {
@@ -44,29 +44,77 @@ function DetectionPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const handleFileSelect = (f: File | null) => {
-    setFile(f);
-    setBoxes([]);
-    setErrorMessage(undefined);
-    setState(f ? "empty" : "empty");
-  };
+  // Probe the model server periodically so we can auto-start
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const ctrl = new AbortController();
+      const timeout = window.setTimeout(() => ctrl.abort(), 2500);
+      const ok = await pingDetectionServer(ctrl.signal);
+      window.clearTimeout(timeout);
+      if (!cancelled) setServerOnline(ok);
+    };
+    check();
+    const id = window.setInterval(check, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
-  const handleStart = () => {
-    if (!file && !liveMode) return;
+  const startDetection = async (target: File) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
     setState("loading");
     setBoxes([]);
     setErrorMessage(undefined);
 
-    // Simulate inference
-    window.setTimeout(() => {
-      if (Math.random() < 0.05) {
-        setErrorMessage("Model timed out. Please retry.");
-        setState("error");
-        return;
-      }
-      setBoxes(MOCK_BOXES);
+    try {
+      const results = await runDetection(target, ctrl.signal);
+      if (ctrl.signal.aborted) return;
+      setBoxes(results);
       setState("ready");
-    }, 1400);
+    } catch (err) {
+      if (ctrl.signal.aborted) return;
+      const msg =
+        err instanceof Error ? err.message : "Failed to reach detection server";
+      setErrorMessage(
+        `${msg}. Make sure the model is running at ${DETECTION_API_URL}.`,
+      );
+      setState("error");
+    }
+  };
+
+  const handleFileSelect = (f: File | null) => {
+    setFile(f);
+    setBoxes([]);
+    setErrorMessage(undefined);
+    if (!f) {
+      abortRef.current?.abort();
+      setState("empty");
+      return;
+    }
+    // Auto-start if the model server is reachable
+    if (serverOnline) {
+      void startDetection(f);
+    } else {
+      setState("empty");
+    }
+  };
+
+  // If the server comes online while a file is already selected, auto-run
+  useEffect(() => {
+    if (serverOnline && file && state === "empty") {
+      void startDetection(file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverOnline]);
+
+  const handleStart = () => {
+    if (!file) return;
+    void startDetection(file);
   };
 
   return (
@@ -74,6 +122,39 @@ function DetectionPage() {
       title="Detection"
       subtitle="Run a new crop scan with AI-powered analysis"
     >
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 text-xs">
+        <div className="flex items-center gap-2">
+          {serverOnline ? (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+              <span className="font-medium text-foreground">
+                Model online — auto-detect enabled
+              </span>
+              <Wifi className="h-3.5 w-3.5 text-success" />
+            </>
+          ) : serverOnline === false ? (
+            <>
+              <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+              <span className="font-medium text-foreground">
+                Model offline
+              </span>
+              <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
+            </>
+          ) : (
+            <>
+              <span className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+              <span className="text-muted-foreground">Checking model…</span>
+            </>
+          )}
+        </div>
+        <code className="text-[11px] text-muted-foreground">
+          {DETECTION_API_URL}
+        </code>
+      </div>
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Left: input */}
         <div className="lg:col-span-4 xl:col-span-3">

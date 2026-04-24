@@ -1,8 +1,6 @@
 import type { BoundingBox } from "@/components/detection/DetectionViewer";
 
 export const DETECTION_API_URL = "http://192.168.0.145:5000";
-export const STREAM_API_URL = "http://192.168.0.179:5000";
-export const STREAM_VIDEO_PATH = "/video_feed";
 
 interface RawPrediction {
   // Possible shapes the backend might return
@@ -230,25 +228,4 @@ export async function pingDetectionServer(
   } catch {
     return false;
   }
-}
-
-export async function pingStreamServer(
-  signal?: AbortSignal,
-): Promise<boolean> {
-  try {
-    // MJPEG streams never finish — issue a HEAD so we don't hang
-    const res = await fetch(`${STREAM_API_URL}/`, {
-      method: "GET",
-      signal,
-      mode: "no-cors", // <img> loads MJPEG without CORS, so opacity is ok
-    });
-    // With no-cors we get an opaque response; reaching here means the host responded
-    return res.type === "opaque" || res.ok || res.status === 404;
-  } catch {
-    return false;
-  }
-}
-
-export function getStreamUrl(): string {
-  return `${STREAM_API_URL}${STREAM_VIDEO_PATH}`;
 }

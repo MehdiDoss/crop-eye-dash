@@ -8,6 +8,7 @@ import {
   LogOut,
   Leaf,
   Plane,
+  Bot,
   X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
   { label: "Detection", to: "/detection", icon: ScanSearch },
   { label: "Drone Monitoring", to: "/drone", icon: Plane },
+  { label: "AI Assistant", to: "/assistant", icon: Bot },
   { label: "History", to: "/history", icon: History },
   { label: "Analytics", to: "/analytics", icon: BarChart3 },
   { label: "Settings", to: "/settings", icon: Settings },

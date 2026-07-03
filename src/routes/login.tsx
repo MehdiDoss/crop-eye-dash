@@ -55,6 +55,24 @@ function LoginPage() {
             Sign in to your CropEye dashboard.
           </p>
 
+          <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <p className="font-medium">Demo account</p>
+            <p className="text-muted-foreground">
+              Email: <span className="font-mono">demo@cropeye.com</span> · Password:{" "}
+              <span className="font-mono">demo123</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("demo@cropeye.com");
+                setPassword("demo123");
+              }}
+              className="mt-1.5 font-medium text-primary hover:underline"
+            >
+              Fill demo credentials
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label className="mb-1.5 block text-xs font-medium text-foreground" htmlFor="email">

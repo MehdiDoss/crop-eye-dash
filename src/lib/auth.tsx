@@ -59,9 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      const accounts = readAccounts();
+      const demoKey = "demo@cropeye.com";
+      if (!accounts[demoKey]) {
+        accounts[demoKey] = {
+          email: demoKey,
+          password: "demo123",
+          displayName: "Demo Farmer",
+          farmName: "Demo Farm",
+          avatarInitials: "DF",
+          notifications: true,
+          language: "en",
+        };
+        writeAccounts(accounts);
+      }
+
       const sessionEmail = localStorage.getItem(SESSION_KEY);
       if (sessionEmail) {
-        const accounts = readAccounts();
         const account = accounts[sessionEmail];
         if (account) setUser(toProfile(account));
       }
